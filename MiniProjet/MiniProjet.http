@@ -1,0 +1,6 @@
+@MiniProjet_HostAddress = http://localhost:5146
+
+GET {{MiniProjet_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

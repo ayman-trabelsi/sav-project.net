@@ -1,0 +1,200 @@
+[
+  {
+    "ContainingType": "MiniProjet.Controllers.ArticleController",
+    "Method": "getAll",
+    "RelativePath": "api/Article",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ArticleController",
+    "Method": "addArticle",
+    "RelativePath": "api/Article",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "article",
+        "Type": "MiniProjet.Models.Article",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.AuthentificationController",
+    "Method": "Authentifier",
+    "RelativePath": "api/Authentification",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "_userData",
+        "Type": "MiniProjet.ModelsDto.UtilisateurDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ClientController",
+    "Method": "Get",
+    "RelativePath": "api/Client",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ClientController",
+    "Method": "AddClient",
+    "RelativePath": "api/Client",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "client",
+        "Type": "MiniProjet.Models.Client",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.InterventionController",
+    "Method": "Get",
+    "RelativePath": "api/Intervention",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.InterventionController",
+    "Method": "Add",
+    "RelativePath": "api/Intervention",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "item",
+        "Type": "MiniProjet.ModelsDto.InterventionRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.PieceRechangeController",
+    "Method": "Get",
+    "RelativePath": "api/PieceRechange",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.PieceRechangeController",
+    "Method": "Add",
+    "RelativePath": "api/PieceRechange",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "piece",
+        "Type": "MiniProjet.Models.PieceRechange",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ReclamationController",
+    "Method": "Get",
+    "RelativePath": "api/Reclamation",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ReclamationController",
+    "Method": "Add",
+    "RelativePath": "api/Reclamation",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "reclamation",
+        "Type": "MiniProjet.Models.Reclamation",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ResponsableSavController",
+    "Method": "Get",
+    "RelativePath": "api/ResponsableSav",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.ResponsableSavController",
+    "Method": "AddResponsableSAV",
+    "RelativePath": "api/ResponsableSav",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "ResponsableSAV",
+        "Type": "MiniProjet.Models.ResponsableSAV",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.TechnicienController",
+    "Method": "GetAll",
+    "RelativePath": "api/Technicien",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "MiniProjet.Controllers.TechnicienController",
+    "Method": "AddTechnicien",
+    "RelativePath": "api/Technicien",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "technicien",
+        "Type": "MiniProjet.Models.Technicien",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
