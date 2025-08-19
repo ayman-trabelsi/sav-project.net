@@ -1,0 +1,78 @@
+﻿@page "/reclamations"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@using Shared.Models
+
+<h3>My Reclamations</h3>
+
+@if (isLoading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (error != null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (reclamations == null || !reclamations.Any())
+{
+    <p>No reclamations found.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Etat</th>
+                <th>Article</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rec in reclamations)
+            {
+                <tr>
+                    <td>@rec.Description</td>
+                    <td>@rec.DateReclamation.ToShortDateString()</td>
+                    <td>@(rec.Etat?.Libelle ?? "-")</td>
+                    <td>@(rec.article?.Libelle ?? "-")</td>
+                    <td><NavLink href="@($"/reclamations/details/{rec.Id}")">Details</NavLink></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Reclamation>? reclamations;
+    private bool isLoading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                error = "Authentication token not found. Please log in again.";
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            reclamations = await Http.GetFromJsonAsync<List<Reclamation>>("api/reclamations");
+        }
+        catch (Exception ex)
+        {
+            error = "An error occurred while loading reclamations. Please try again.";
+            Console.WriteLine($"Error loading reclamations: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

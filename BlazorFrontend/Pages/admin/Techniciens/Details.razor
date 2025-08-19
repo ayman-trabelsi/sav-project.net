@@ -1,0 +1,79 @@
+@page "/admin/techniciens/details/{Id:int}"
+@using Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Technicien Details</h3>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (technicien == null)
+{
+    <p>Technicien not found.</p>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Nom</dt>
+        <dd class="col-sm-9">@technicien.Nom</dd>
+
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@technicien.Email</dd>
+
+        <dt class="col-sm-3">Telephone</dt>
+        <dd class="col-sm-9">@technicien.Telephone</dd>
+
+        <dt class="col-sm-3">Specialite</dt>
+        <dd class="col-sm-9">@technicien.Specialite</dd>
+    </dl>
+
+    <h4>Interventions</h4>
+    @if (interventions == null || !interventions.Any())
+    {
+        <p>No interventions found for this technicien.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Reclamation</th>
+                    <th>Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var intervention in interventions)
+                {
+                    <tr>
+                        <td>@intervention.DateIntervention.ToShortDateString()</td>
+                        <td>@intervention.Description</td>
+                        <td>@(intervention.Reclamation?.Description ?? "-")</td>
+                        <td>@intervention.MontantFacture.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <NavLink href="/admin/techniciens" class="btn btn-secondary">Back to list</NavLink>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Technicien? technicien;
+    private List<Intervention>? interventions;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        technicien = await Http.GetFromJsonAsync<Technicien>($"api/techniciens/{Id}");
+        interventions = await Http.GetFromJsonAsync<List<Intervention>>($"api/techniciens/{Id}/interventions");
+        loading = false;
+    }
+} 

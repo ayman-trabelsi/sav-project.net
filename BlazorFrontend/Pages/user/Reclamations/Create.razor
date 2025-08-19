@@ -1,0 +1,184 @@
+﻿@page "/reclamations/create"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@using Shared.Models
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+
+<h3>Nouvelle Réclamation</h3>
+
+@if (successMessage != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @successMessage
+        <button type="button" class="btn-close" @onclick="NavigateBack"></button>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-12 mb-4">
+            <ArticleSelection SelectedArticleId="reclamation.idArticleReclamation" 
+                             OnArticleSelected="HandleArticleSelected" />
+        </div>
+        <div class="col-md-6">
+            <EditForm Model="@reclamation" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-group mb-3">
+                    <label for="description">Description</label>
+                    <InputTextArea id="description" class="form-control" @bind-Value="reclamation.Description" />
+                    <ValidationMessage For="@(() => reclamation.Description)" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+
+                <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span> Création en cours...</span>
+                    }
+                    else
+                    {
+                        <span>Créer</span>
+                    }
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="NavigateBack" disabled="@isSubmitting">Annuler</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "articleId")]
+    public int? ArticleId { get; set; }
+
+    private Reclamation reclamation = new Reclamation
+    {
+        DateReclamation = DateTime.Now,
+        EtatId = 1, // Default to "En attente"
+        idArticleReclamation = 0
+    };
+    private bool isSubmitting = false;
+    private string? error;
+    private string? successMessage;
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/reclamations");
+    }
+
+    protected override void OnInitialized()
+    {
+        if (ArticleId.HasValue)
+        {
+            reclamation.idArticleReclamation = ArticleId.Value;
+        }
+    }
+
+    private void HandleArticleSelected(Article article)
+    {
+        reclamation.idArticleReclamation = article.Id;
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (reclamation.idArticleReclamation == 0)
+            {
+                error = "Veuillez sélectionner un article.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(reclamation.Description))
+            {
+                error = "Veuillez saisir une description.";
+                return;
+            }
+
+            isSubmitting = true;
+            error = null;
+
+            Console.WriteLine("=== Creating Reclamation ===");
+            Console.WriteLine($"Description: {reclamation.Description}");
+            Console.WriteLine($"Article ID: {reclamation.idArticleReclamation}");
+            Console.WriteLine($"Date: {reclamation.DateReclamation}");
+            Console.WriteLine($"Etat ID: {reclamation.EtatId}");
+
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                error = "Session expirée. Veuillez vous reconnecter.";
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            var clientIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            
+            Console.WriteLine($"Client ID from token: {clientIdClaim}");
+            
+            if (string.IsNullOrEmpty(clientIdClaim) || !int.TryParse(clientIdClaim, out int clientId))
+            {
+                error = "Impossible de récupérer l'identifiant du client. Veuillez vous reconnecter.";
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            // Set the client ID and state
+            reclamation.ClientId = clientId;
+            reclamation.EtatId = 1; // "En attente"
+            
+            Console.WriteLine($"Final reclamation object: ClientId={reclamation.ClientId}, EtatId={reclamation.EtatId}, ArticleId={reclamation.idArticleReclamation}");
+            
+            var response = await Http.PostAsJsonAsync("api/reclamations", reclamation);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            Console.WriteLine($"Response content: {responseContent}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var createdReclamation = await response.Content.ReadFromJsonAsync<Reclamation>();
+                successMessage = $"Réclamation créée avec succès! Numéro de réclamation: {createdReclamation?.Id}";
+                
+                // Wait for 3 seconds before redirecting
+                await Task.Delay(3000);
+                NavigationManager.NavigateTo("/reclamations");
+            }
+            else
+            {
+                error = $"Échec de la création de la réclamation: {responseContent}";
+                await JS.InvokeVoidAsync("alert", error);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors de la création de la réclamation.";
+            Console.WriteLine($"Error creating reclamation: {ex}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner exception: {ex.InnerException}");
+                Console.WriteLine($"Inner exception stack trace: {ex.InnerException.StackTrace}");
+            }
+            await JS.InvokeVoidAsync("alert", error);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

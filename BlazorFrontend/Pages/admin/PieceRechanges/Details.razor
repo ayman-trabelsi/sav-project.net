@@ -1,0 +1,44 @@
+@page "/admin/piecerechanges/details/{Id:int}"
+@using Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Piece Rechange Details</h3>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (piece == null)
+{
+    <p>Piece Rechange not found.</p>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Nom</dt>
+        <dd class="col-sm-9">@piece.Nom</dd>
+
+        <dt class="col-sm-3">Prix</dt>
+        <dd class="col-sm-9">@piece.Prix.ToString("C")</dd>
+
+        <dt class="col-sm-3">Article</dt>
+        <dd class="col-sm-9">@(piece.Article?.Libelle ?? "-")</dd>
+    </dl>
+
+    <NavLink href="/admin/piecerechanges" class="btn btn-secondary">Back to list</NavLink>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PieceRechange? piece;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        piece = await Http.GetFromJsonAsync<PieceRechange>($"api/piecerechanges/{Id}");
+        loading = false;
+    }
+} 

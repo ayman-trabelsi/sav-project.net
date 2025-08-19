@@ -1,0 +1,129 @@
+@page "/admin/reclamations/create"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@using Shared.Models
+
+<h3>Nouvelle Réclamation</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@reclamation" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group mb-3">
+                <label for="article">Article</label>
+                <InputSelect id="article" class="form-select" @bind-Value="reclamation.idArticleReclamation">
+                    <option value="">Sélectionner un article</option>
+                    @if (articles != null)
+                    {
+                        @foreach (var article in articles)
+                        {
+                            <option value="@article.Id">@article.Libelle</option>
+                        }
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => reclamation.idArticleReclamation)" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="description">Description</label>
+                <InputTextArea id="description" class="form-control" @bind-Value="reclamation.Description" />
+                <ValidationMessage For="@(() => reclamation.Description)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Créer</button>
+            <button type="button" class="btn btn-secondary" @onclick="NavigateBack">Annuler</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Reclamation reclamation = new Reclamation
+    {
+        DateReclamation = DateTime.Now,
+        EtatId = 1, // Default to "En attente"
+    };
+    private List<Article>? articles;
+    private bool isLoading = true;
+    private string? error;
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/adminreclamations");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                articles = await Http.GetFromJsonAsync<List<Article>>("api/articles");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors du chargement des articles. Veuillez réessayer.";
+            Console.WriteLine($"Error loading articles: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            Console.WriteLine("=== Creating Reclamation ===");
+            Console.WriteLine($"Description: {reclamation.Description}");
+            Console.WriteLine($"Article ID: {reclamation.idArticleReclamation}");
+            Console.WriteLine($"Date: {reclamation.DateReclamation}");
+            Console.WriteLine($"Etat ID: {reclamation.EtatId}");
+
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                error = "Session expirée. Veuillez vous reconnecter.";
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.PostAsJsonAsync("api/reclamations", reclamation);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Response status: {response.StatusCode}");
+            Console.WriteLine($"Response content: {responseContent}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo("/admin/reclamations");
+            }
+            else
+            {
+                error = $"Échec de la création de la réclamation: {responseContent}";
+                await JS.InvokeVoidAsync("alert", error);
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors de la création de la réclamation.";
+            Console.WriteLine($"Error creating reclamation: {ex}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner exception: {ex.InnerException}");
+                Console.WriteLine($"Inner exception stack trace: {ex.InnerException.StackTrace}");
+            }
+            await JS.InvokeVoidAsync("alert", error);
+        }
+    }
+} 

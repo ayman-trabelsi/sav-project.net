@@ -1,0 +1,243 @@
+@page "/pieces-rechange"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@using Shared.Models
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h3>Pièces de Rechange</h3>
+            <p class="text-muted">Sélectionnez un article pour voir les pièces de rechange disponibles</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">
+            @error
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Sélectionner un Article</h5>
+                    <select class="form-select" @onchange="HandleArticleChange">
+                        <option value="">-- Select Article --</option>
+                        @if (articles != null)
+                        {
+                            @foreach (var article in articles)
+                            {
+                                <option value="@article.Id">@article.Libelle</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (selectedArticle != null)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Pièces disponibles pour @selectedArticle.Libelle</h4>
+                        
+                        @if (isLoadingPieces)
+                        {
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Chargement...</span>
+                                </div>
+                            </div>
+                        }
+                        else if (error != null)
+                        {
+                            <div class="alert alert-danger">@error</div>
+                        }
+                        else if (pieces == null || !pieces.Any())
+                        {
+                            <div class="alert alert-info">
+                                Aucune pièce de rechange disponible pour cet article.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Nom</th>
+                                            <th>Prix</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var piece in pieces)
+                                        {
+                                            <tr>
+                                                <td style="width: 100px;">
+                                                    @if (!string.IsNullOrEmpty(piece.ImageUrl))
+                                                    {
+                                                        <img src="@piece.ImageUrl" alt="@piece.Nom" 
+                                                             class="img-thumbnail" style="height: 60px; width: 60px; object-fit: cover;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                             style="height: 60px; width: 60px;">
+                                                            <span class="text-muted small">Pas d'image</span>
+                                                        </div>
+                                                    }
+                                                </td>
+                                                <td>@piece.Nom</td>
+                                                <td>@piece.Prix.ToString("C")</td>
+                                                <td>
+                                                    <button class="btn btn-primary btn-sm" @onclick="() => BuyPiece(piece)">
+                                                        <i class="oi oi-cart"></i> Acheter
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private int? selectedArticleId;
+    private Article? selectedArticle;
+    private List<PieceRechange>? pieces;
+    private bool isLoadingPieces = false;
+    private string? error;
+    private List<Article>? articles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                error = "Session expirée. Veuillez vous reconnecter.";
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            articles = await Http.GetFromJsonAsync<List<Article>>("api/articles");
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors de l'initialisation de la page.";
+            Console.WriteLine($"Error initializing page: {ex}");
+        }
+    }
+
+    private async Task HandleArticleChange(ChangeEventArgs e)
+    {
+        try
+        {
+            if (e.Value != null && int.TryParse(e.Value.ToString(), out int articleId))
+            {
+                await HandleArticleSelected(articles.FirstOrDefault(a => a.Id == articleId));
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors de la sélection de l'article.";
+            Console.WriteLine($"Error selecting article: {ex}");
+        }
+    }
+
+    private async Task HandleArticleSelected(Article article)
+    {
+        try
+        {
+            selectedArticle = article;
+            selectedArticleId = article.Id;
+            await LoadPiecesForArticle(article.Id);
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors de la sélection de l'article.";
+            Console.WriteLine($"Error selecting article: {ex}");
+        }
+    }
+
+    private async Task LoadPiecesForArticle(int articleId)
+    {
+        try
+        {
+            isLoadingPieces = true;
+            error = null;
+
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                error = "Session expirée. Veuillez vous reconnecter.";
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.GetAsync($"api/piecerechanges/article/{articleId}");
+            if (response.IsSuccessStatusCode)
+            {
+                pieces = await response.Content.ReadFromJsonAsync<List<PieceRechange>>();
+            }
+            else
+            {
+                error = "Impossible de charger les pièces de rechange. Veuillez réessayer.";
+                Console.WriteLine($"Error loading pieces: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors du chargement des pièces de rechange.";
+            Console.WriteLine($"Error loading pieces: {ex}");
+        }
+        finally
+        {
+            isLoadingPieces = false;
+        }
+    }
+
+    private async Task BuyPiece(PieceRechange piece)
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", 
+                $"Voulez-vous acheter {piece.Nom} pour {piece.Prix.ToString("C")} ?");
+            
+            if (confirmed)
+            {
+                // Here you would typically integrate with a payment system
+                // For now, we'll just show a success message
+                await JS.InvokeVoidAsync("alert", 
+                    $"Commande confirmée pour {piece.Nom}. Un email de confirmation vous sera envoyé.");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors de l'achat de la pièce.";
+            Console.WriteLine($"Error buying piece: {ex}");
+            await JS.InvokeVoidAsync("alert", error);
+        }
+    }
+} 

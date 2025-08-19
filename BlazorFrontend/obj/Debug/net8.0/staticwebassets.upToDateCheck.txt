@@ -1,0 +1,9 @@
+wwwroot\css\app.css
+wwwroot\css\auth.css
+wwwroot\css\bootstrap\bootstrap.min.css
+wwwroot\css\bootstrap\bootstrap.min.css.map
+wwwroot\favicon.png
+wwwroot\icon-192.png
+wwwroot\images\Partners-Hero-Image-darkened.jpg
+wwwroot\index.html
+wwwroot\sample-data\weather.json

@@ -1,0 +1,128 @@
+﻿@page "/admin/articles"
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject IHttpClientFactory ClientFactory
+@inject AuthService _authService
+@attribute [Authorize(Roles = "ResponsableSAV")]
+@using Microsoft.AspNetCore.Authorization
+@using Shared.Models
+
+<h3 class="mb-4">Gestion des Articles</h3>
+
+<button class="btn btn-success mb-3" @onclick="CreateArticle">Créer un nouvel article</button>
+
+@if (Articles == null)
+{
+    <p>Chargement en cours...</p>
+}
+else if (Articles.Count == 0)
+{
+    <p>Aucun article trouvé.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var article in Articles)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(article.ImageUrl))
+                    {
+                        <img src="@article.ImageUrl" class="card-img-top" alt="@article.Libelle" style="height: 200px; object-fit: cover;">
+                    }
+                    else
+                    {
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <span class="text-muted">Pas d'image</span>
+                        </div>
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@article.Libelle</h5>
+                        <p class="card-text">
+                            <strong>Prix:</strong> @article.Prix.ToString("C")<br>
+                            <strong>Sous Garantie:</strong> @(article.EstSousGarantie ? "Oui" : "Non")
+                        </p>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" @onclick="@(() => EditArticle(article.Id))">Modifier</button>
+                            <button class="btn btn-danger" @onclick="@(() => DeleteArticle(article.Id))">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Article>? Articles;
+
+    private async Task<HttpClient> GetAuthorizedHttpClient()
+    {
+        var client = ClientFactory.CreateClient("AuthorizedClient");
+        var token = await _authService.GetTokenAsync();
+
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        return client;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadArticles();
+    }
+
+    private async Task LoadArticles()
+    {
+        try
+        {
+            var client = await GetAuthorizedHttpClient();
+            Articles = await client.GetFromJsonAsync<List<Article>>("api/articles");
+            
+            if (Articles != null)
+            {
+                foreach (var article in Articles)
+                {
+                    Console.WriteLine($"Article {article.Id} - {article.Libelle} - ImageUrl: {article.ImageUrl}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Erreur lors du chargement des articles : {ex.Message}");
+            Console.WriteLine($"Erreur lors du chargement des articles : {ex.Message}");
+        }
+    }
+
+    private void CreateArticle() => Navigation.NavigateTo("/admin/articles/create");
+
+    private void EditArticle(int id) => Navigation.NavigateTo($"/admin/articles/edit/{id}");
+
+    private async Task DeleteArticle(int id)
+    {
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer cet article ?");
+            if (confirmed)
+            {
+                var client = await GetAuthorizedHttpClient();
+                var response = await client.DeleteAsync($"api/articles/{id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    await LoadArticles();
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    await JS.InvokeVoidAsync("alert", $"Erreur lors de la suppression: {error}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Une erreur est survenue: {ex.Message}");
+        }
+    }
+}

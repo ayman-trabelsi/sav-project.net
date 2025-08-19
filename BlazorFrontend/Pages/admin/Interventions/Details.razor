@@ -1,0 +1,78 @@
+@page "/admin/interventions/details/{Id:int}"
+@using Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Intervention Details</h3>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (intervention == null)
+{
+    <p>Intervention not found.</p>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Date</dt>
+        <dd class="col-sm-9">@intervention.DateIntervention.ToShortDateString()</dd>
+
+        <dt class="col-sm-3">Description</dt>
+        <dd class="col-sm-9">@intervention.Description</dd>
+
+        <dt class="col-sm-3">Article</dt>
+        <dd class="col-sm-9">
+            @(intervention.Reclamation?.article?.Libelle ?? "-")
+            @if (intervention.Reclamation?.article?.EstSousGarantie == true)
+            {
+                <span class="badge bg-success">Sous garantie</span>
+            }
+            else
+            {
+                <span class="badge bg-warning">Hors garantie</span>
+            }
+        </dd>
+
+        <dt class="col-sm-3">Coûts</dt>
+        <dd class="col-sm-9">
+            @if (intervention.Reclamation?.article?.EstSousGarantie == true)
+            {
+                <div class="alert alert-success">
+                    <p class="mb-0">Intervention gratuite (article sous garantie)</p>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <p>Main d'œuvre: @intervention.MainDOeuvre.ToString("C")</p>
+                    <p>Pièces de rechange: @intervention.Prix.ToString("C")</p>
+                    <p class="mb-0"><strong>Total: @intervention.MontantFacture.ToString("C")</strong></p>
+                </div>
+            }
+        </dd>
+
+        <dt class="col-sm-3">Technicien</dt>
+        <dd class="col-sm-9">@(intervention.Technicien?.Nom ?? "-")</dd>
+
+        <dt class="col-sm-3">Reclamation</dt>
+        <dd class="col-sm-9">@(intervention.Reclamation?.Description ?? "-")</dd>
+    </dl>
+
+    <NavLink href="/admin/interventions" class="btn btn-secondary">Back to list</NavLink>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Intervention? intervention;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        intervention = await Http.GetFromJsonAsync<Intervention>($"api/interventions/{Id}");
+        loading = false;
+    }
+} 

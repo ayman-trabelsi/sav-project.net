@@ -1,0 +1,126 @@
+﻿@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Service Apres Vente</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        @if (AuthService.Roles != null && AuthService.Roles.Contains("Client"))
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/reclamations/create">
+                    <span class="oi oi-plus" aria-hidden="true"></span> Create Reclamation
+                </NavLink>
+            </div>
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/reclamations">
+                    <span class="oi oi-list-rich" aria-hidden="true"></span> My Reclamations
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/pieces-rechange">
+                    <span class="oi oi-wrench" aria-hidden="true"></span> Pièces de Rechange
+                </NavLink>
+            </div>
+        }
+
+        @if (AuthService.Roles != null && AuthService.Roles.Contains("ResponsableSAV"))
+        {
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/adminreclamations">
+                     <span class="oi oi-wrench" aria-hidden="true"></span> Reclamations
+                </NavLink>
+            </div>
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/interventions">
+                     <span class="oi oi-calendar" aria-hidden="true"></span> Interventions
+                </NavLink>
+            </div>
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/articles">
+                     <span class="oi oi-book" aria-hidden="true"></span>Articles
+                </NavLink>
+            </div>
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/piecerechanges">
+                     <span class="oi oi-puzzle-piece" aria-hidden="true"></span> Pieces Rechange
+                </NavLink>
+            </div>
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/admin/techniciens">
+                     <span class="oi oi-person" aria-hidden="true"></span>Techniciens
+                </NavLink>
+            </div>
+        }
+
+
+        @if (AuthService.Roles != null)
+        {
+            <div class="nav-item px-3">
+                <button class="nav-link btn btn-link" @onclick="HandleLogout">
+                     <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/login">
+                    <span class="oi oi-account-login" aria-hidden="true"></span> Login
+                </NavLink>
+            </div>
+             <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/register">
+                    <span class="oi oi-person" aria-hidden="true"></span> Register
+                </NavLink>
+            </div>
+        }
+
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override void OnInitialized()
+    {
+        AuthService.OnAuthStateChanged += AuthStateChanged;
+    }
+
+    private void AuthStateChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= AuthStateChanged;
+    }
+}

@@ -1,0 +1,99 @@
+﻿@page "/register"
+@* @layout MinimalLayout *@
+@using System.ComponentModel.DataAnnotations
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@* @using BlazorFrontend.Components *@
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Inscription</h2>
+            <p>Créez votre compte</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="validation-message">@errorMessage</div>
+        }
+
+        @if (showLoader)
+        {
+            <Loader IsLoading="isLoading" />
+        }
+        else
+        {
+            <EditForm Model="registerModel" OnValidSubmit="HandleRegister" class="auth-form">
+                <DataAnnotationsValidator />
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <InputText id="email" @bind-Value="registerModel.Email" class="form-control" placeholder="Entrez votre email" />
+                    <ValidationMessage For="@(() => registerModel.Email)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Nom</label>
+                    <InputText id="name" @bind-Value="registerModel.Name" class="form-control" placeholder="Entrez votre nom" />
+                    <ValidationMessage For="@(() => registerModel.Name)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <InputText id="password" @bind-Value="registerModel.Password" type="password" class="form-control" placeholder="Entrez votre mot de passe" />
+                    <ValidationMessage For="@(() => registerModel.Password)" />
+                </div>
+
+                <button type="submit" class="auth-button">S'inscrire</button>
+            </EditForm>
+
+            <div class="auth-links">
+                <p>Déjà un compte ? <a href="/login">Se connecter</a></p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private RegisterModel registerModel = new();
+    private string errorMessage;
+    private bool showLoader = false;
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        var success = await AuthService.RegisterAsync(registerModel.Email, registerModel.Name, registerModel.Password);
+        if (success)
+        {
+            showLoader = true;
+            isLoading = true;
+            StateHasChanged();
+
+            await Task.Delay(1500);
+
+            isLoading = false;
+            StateHasChanged();
+
+            await Task.Delay(1000);
+
+            NavigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            errorMessage = "L'inscription a échoué. Veuillez réessayer.";
+        }
+    }
+
+    private class RegisterModel
+    {
+        [Required(ErrorMessage = "L'email est requis")]
+        [EmailAddress(ErrorMessage = "Adresse email invalide")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Le nom est requis")]
+        public string Name { get; set; }
+
+        [Required(ErrorMessage = "Le mot de passe est requis")]
+        [MinLength(6, ErrorMessage = "Le mot de passe doit contenir au moins 6 caractères")]
+        public string Password { get; set; }
+    }
+}

@@ -1,0 +1,80 @@
+﻿@page "/login"
+@* @layout MinimalLayout *@
+@using Shared.ModelsDto
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@* @using BlazorFrontend.Components *@
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Connexion</h2>
+            <p>Connectez-vous à votre compte</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="validation-message">@errorMessage</div>
+        }
+
+        @if (showLoader)
+        {
+            <Loader IsLoading="isLoading" />
+        }
+        else
+        {
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin" class="auth-form">
+                <DataAnnotationsValidator />
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <InputText id="email" @bind-Value="loginModel.Email" class="form-control" placeholder="Entrez votre email" />
+                    <ValidationMessage For="@(() => loginModel.Email)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <InputText id="password" @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="Entrez votre mot de passe" />
+                    <ValidationMessage For="@(() => loginModel.Password)" />
+                </div>
+
+                <button type="submit" class="auth-button">Se connecter</button>
+            </EditForm>
+
+            <div class="auth-links">
+                <p>Pas encore de compte ? <a href="/register">S'inscrire</a></p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private LoginUserDto loginModel = new();
+    private string errorMessage;
+    private bool showLoader = false;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+        if (success)
+        {
+            showLoader = true;
+            isLoading = true;
+            StateHasChanged();
+
+            await Task.Delay(1500);
+
+            isLoading = false;
+            StateHasChanged();
+
+            await Task.Delay(1000);
+
+            await AuthService.LoadUserFromTokenAsync();
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Email ou mot de passe incorrect";
+        }
+    }
+}

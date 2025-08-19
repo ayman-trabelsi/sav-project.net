@@ -1,0 +1,104 @@
+@inject HttpClient Http
+@inject IJSRuntime JS
+@using Shared.Models
+
+<div class="article-selection">
+    <h4 class="mb-4">Sélectionnez un article</h4>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (error != null)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    else if (articles == null || !articles.Any())
+    {
+        <p>Aucun article disponible.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var article in articles)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 @(selectedArticleId == article.Id ? "border-primary" : "")" 
+                         style="cursor: pointer; transition: all 0.3s ease;"
+                         @onclick="() => SelectArticle(article)">
+                        @if (!string.IsNullOrEmpty(article.ImageUrl))
+                        {
+                            <img src="@article.ImageUrl" class="card-img-top" alt="@article.Libelle" 
+                                 style="height: 200px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                                 style="height: 200px;">
+                                <span class="text-muted">Pas d'image</span>
+                            </div>
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@article.Libelle</h5>
+                            <p class="card-text">
+                                <strong>Prix:</strong> @article.Prix.ToString("C")<br>
+                                <strong>Sous Garantie:</strong> @(article.EstSousGarantie ? "Oui" : "Non")
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int? SelectedArticleId { get; set; }
+
+    [Parameter]
+    public EventCallback<Article> OnArticleSelected { get; set; }
+
+    private List<Article>? articles;
+    private bool isLoading = true;
+    private string? error;
+    private int? selectedArticleId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                error = "Session expirée. Veuillez vous reconnecter.";
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            articles = await Http.GetFromJsonAsync<List<Article>>("api/articles");
+            selectedArticleId = SelectedArticleId;
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors du chargement des articles.";
+            Console.WriteLine($"Error loading articles: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SelectArticle(Article article)
+    {
+        selectedArticleId = article.Id;
+        await OnArticleSelected.InvokeAsync(article);
+    }
+} 

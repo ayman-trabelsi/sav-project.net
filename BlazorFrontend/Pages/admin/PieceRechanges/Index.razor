@@ -1,0 +1,77 @@
+@page "/admin/piecerechanges"
+@using Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Pieces Rechange</h3>
+
+<p>
+    <NavLink href="/admin/piecerechanges/create" class="btn btn-primary">Create New</NavLink>
+</p>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (pieces == null || !pieces.Any())
+{
+    <p>No pieces rechange found.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Nom</th>
+                <th>Prix</th>
+                <th>Article</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var piece in pieces)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrEmpty(piece.ImageUrl))
+                        {
+                            <img src="@piece.ImageUrl" alt="@piece.Nom" style="height: 60px; width: 60px; object-fit: cover; border-radius: 6px;" />
+                        }
+                        else
+                        {
+                            <span class="text-muted">No image</span>
+                        }
+                    </td>
+                    <td>@piece.Nom</td>
+                    <td>@piece.Prix.ToString("C")</td>
+                    <td>@(piece.Article?.Libelle ?? "-")</td>
+                    <td>
+                        <NavLink href="@($"/admin/piecerechanges/edit/{piece.Id}")" class="btn btn-info btn-sm">Edit</NavLink>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeletePiece(piece.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<PieceRechange>? pieces;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        pieces = await Http.GetFromJsonAsync<List<PieceRechange>>("api/piecerechanges");
+        loading = false;
+    }
+
+    private async Task DeletePiece(int id)
+    {
+        var response = await Http.DeleteAsync($"api/piecerechanges/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            pieces = await Http.GetFromJsonAsync<List<PieceRechange>>("api/piecerechanges");
+        }
+    }
+} 

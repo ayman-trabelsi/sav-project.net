@@ -1,0 +1,314 @@
+@page "/admin/interventions/create"
+@using Shared.Models
+@using Shared.ModelsDto
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h3>Create Intervention</h3>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="@interventionRequest" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="articleId">Article</label>
+            <InputSelect id="articleId" @bind-Value="selectedArticleId" class="form-control" @onchange="HandleArticleChange">
+                <option value="0">Select an article...</option>
+                @if (articles != null)
+                {
+                    @foreach (var article in articles)
+                    {
+                        <option value="@article.Id">@article.Libelle</option>
+                    }
+                }
+            </InputSelect>
+        </div>
+
+        @if (selectedArticle != null)
+        {
+            <div class="alert @(selectedArticle.EstSousGarantie ? "alert-success" : "alert-warning") mb-3">
+                @if (selectedArticle.EstSousGarantie)
+                {
+                    <strong>Article sous garantie</strong>
+                    <p>Une intervention technique est gratuite.</p>
+                }
+                else
+                {
+                    <strong>Article hors garantie</strong>
+                    <p>Une intervention est facturée (main d'œuvre + pièces).</p>
+                }
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <InputText id="description" @bind-Value="interventionRequest.intervention.Description" class="form-control" />
+            <ValidationMessage For="@(() => interventionRequest.intervention.Description)" />
+        </div>
+
+        <div class="form-group">
+            <label for="dateIntervention">Date</label>
+            <InputDate id="dateIntervention" @bind-Value="interventionRequest.intervention.DateIntervention" class="form-control" />
+            <ValidationMessage For="@(() => interventionRequest.intervention.DateIntervention)" />
+        </div>
+
+        @if (selectedArticle != null /* && !selectedArticle.EstSousGarantie */)
+        {
+            <div class="form-group">
+                <label>Main d'œuvre</label>
+                <div class="input-group">
+                    <span class="input-group-text">€</span>
+                    <input type="number" class="form-control" value="50" readonly />
+                </div>
+                <small class="text-muted">Coût fixe de la main d'œuvre</small>
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="technicienId">Technicien</label>
+            <InputSelect id="technicienId" @bind-Value="interventionRequest.intervention.TechnicienId" class="form-control">
+                <option value="0">Select a technicien...</option>
+                @if (techniciens != null)
+                {
+                    @foreach (var technicien in techniciens)
+                    {
+                        <option value="@technicien.Id">@technicien.Nom</option>
+                    }
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => interventionRequest.intervention.TechnicienId)" />
+        </div>
+
+        <div class="form-group">
+            <label for="reclamationId">Reclamation</label>
+            <select class="form-select" @bind="interventionRequest.intervention.ReclamationId">
+                <option value="0">Select a reclamation...</option>
+                @if (reclamations != null)
+                {
+                    @foreach (var reclamation in reclamations)
+                    {
+                        <option value="@reclamation.Id">@reclamation.Client?.Username - @reclamation.article?.Libelle</option>
+                    }
+                }
+            </select>
+            <ValidationMessage For="@(() => interventionRequest.intervention.ReclamationId)" />
+        </div>
+
+        <div class="form-group">
+            <label>Pièces de rechange</label>
+            @if (piecesRechange != null && piecesRechange.Any())
+            {
+                <div class="mb-2">
+                    <small class="text-muted">Sélectionnez les pièces nécessaires pour l'intervention</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Sélectionner</th>
+                                <th>Nom de la pièce</th>
+                                <th>Prix</th>
+                                <th>ArticleId</th>
+                                <th>Nom de l'article</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var piece in piecesRechange)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="checkbox"
+                                               class="form-check-input"
+                                               checked="@selectedPieces.Contains(piece.Id)"
+                                               @onchange="(e) => OnPieceCheckedChanged(piece.Id, ((ChangeEventArgs)e).Value)" />
+                                    </td>
+                                    <td>@piece.Nom</td>
+                                    <td>@piece.Prix.ToString("C")</td>
+                                    <td>@piece.ArticleId</td>
+                                    <td>@(articles?.FirstOrDefault(a => a.Id == piece.ArticleId)?.Libelle ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info mt-2">Aucune pièce de rechange disponible dans la base de données.</div>
+            }
+        </div>
+
+        <div class="alert alert-info">
+            <h5>Récapitulatif des coûts</h5>
+            <table class="table table-sm">
+                <tr>
+                    <td>Main d'œuvre:</td>
+                    <td class="text-end">@LABOR_COST.ToString("C")</td>
+                </tr>
+                <tr>
+                    <td>Pièces de rechange:</td>
+                    <td class="text-end">@selectedPiecesTotal.ToString("C")</td>
+                </tr>
+                <tr class="table-active">
+                    <td><strong>Total:</strong></td>
+                    <td class="text-end"><strong>@totalAmount.ToString("C")</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private InterventionRequestDto interventionRequest = new();
+    private List<Technicien>? techniciens;
+    private List<Reclamation>? reclamations;
+    private List<PieceRechange>? piecesRechange;
+    private List<Article>? articles;
+    private List<PieceRechange>? filteredPiecesRechange;
+    private HashSet<int> selectedPieces = new();
+    private bool loading = true;
+    private int selectedArticleId;
+    private Article? selectedArticle;
+    private decimal selectedPiecesTotal = 0;
+    private decimal totalAmount = 0;
+    private const decimal LABOR_COST = 50.00m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                techniciens = await Http.GetFromJsonAsync<List<Technicien>>("api/techniciens");
+                reclamations = await Http.GetFromJsonAsync<List<Reclamation>>("api/reclamations");
+                piecesRechange = await Http.GetFromJsonAsync<List<PieceRechange>>("api/piecerechanges");
+                articles = await Http.GetFromJsonAsync<List<Article>>("api/articles");
+
+                interventionRequest.intervention.DateIntervention = DateTime.Now;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void HandleArticleChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int articleId) && articleId > 0)
+        {
+            selectedArticleId = articleId;
+            selectedArticle = articles?.FirstOrDefault(a => a.Id == articleId);
+
+            if (selectedArticle != null)
+            {
+                if (selectedArticle.EstSousGarantie)
+                {
+                    interventionRequest.intervention.Prix = 0;
+                    interventionRequest.intervention.MainDOeuvre = 0;
+                }
+                else
+                {
+                    interventionRequest.intervention.MainDOeuvre = LABOR_COST;
+                }
+
+                filteredPiecesRechange = piecesRechange?
+                    .Where(p => p.ArticleId == selectedArticleId)
+                    .ToList();
+            }
+
+            selectedPieces.Clear();
+            CalculateTotalAmount();
+            StateHasChanged();
+        }
+        else
+        {
+            selectedArticle = null;
+            filteredPiecesRechange = null;
+        }
+    }
+
+    private void CalculateTotalAmount()
+    {
+        if (selectedArticle == null) return;
+
+        if (selectedArticle.EstSousGarantie)
+        {
+            interventionRequest.intervention.Prix = 0;
+            interventionRequest.intervention.MainDOeuvre = 0;
+            selectedPiecesTotal = 0;
+            totalAmount = 0;
+        }
+        else
+        {
+            // Calculate total for selected pieces
+            selectedPiecesTotal = filteredPiecesRechange?
+                .Where(p => selectedPieces.Contains(p.Id))
+                .Sum(p => p.Prix) ?? 0;
+
+            interventionRequest.intervention.Prix = selectedPiecesTotal;
+            interventionRequest.intervention.MainDOeuvre = LABOR_COST;
+            totalAmount = LABOR_COST + selectedPiecesTotal;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            // Set the selected piece IDs
+            interventionRequest.pieceRechangeIds = selectedPieces.ToList();
+
+            var response = await Http.PostAsJsonAsync("api/interventions", interventionRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/admin/interventions");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", $"Error creating intervention: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error creating intervention: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/interventions");
+    }
+
+    private void OnPieceCheckedChanged(int pieceId, object? isCheckedObj)
+    {
+        bool isChecked = isCheckedObj is bool b && b;
+        if (isChecked)
+            selectedPieces.Add(pieceId);
+        else
+            selectedPieces.Remove(pieceId);
+
+        CalculateTotalAmount();
+    }
+} 

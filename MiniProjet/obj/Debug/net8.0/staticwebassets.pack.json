@@ -1,0 +1,65 @@
+{
+  "Files": [
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\1633de80-7c18-4903-83c5-36c34b7671de.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\1633de80-7c18-4903-83c5-36c34b7671de.jpeg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\1f608c91-2b8f-4d79-b70c-33cd5669970c.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\1f608c91-2b8f-4d79-b70c-33cd5669970c.jpeg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\2242ccc8-6d27-42cd-a08e-7cb8c3a86600.jpg",
+      "PackagePath": "staticwebassets\\uploads\\2242ccc8-6d27-42cd-a08e-7cb8c3a86600.jpg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\8155a861-e7e7-4d0e-aebd-cda5090a53f9.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\8155a861-e7e7-4d0e-aebd-cda5090a53f9.jpeg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\898e7e7e-7564-42c7-9a5a-0a3386075232.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\898e7e7e-7564-42c7-9a5a-0a3386075232.jpeg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\96b97e71-4f70-4eb0-b7b9-256e5eaa5d66.jpg",
+      "PackagePath": "staticwebassets\\uploads\\96b97e71-4f70-4eb0-b7b9-256e5eaa5d66.jpg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\af604c10-4c25-47ee-9e88-caf333468f0f.jpeg",
+      "PackagePath": "staticwebassets\\uploads\\af604c10-4c25-47ee-9e88-caf333468f0f.jpeg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\db474ebc-7a32-4bd7-8ac9-b57d88d7772e.jpg",
+      "PackagePath": "staticwebassets\\uploads\\db474ebc-7a32-4bd7-8ac9-b57d88d7772e.jpg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\e8060b84-ce98-4cf7-b4e5-e170ad767eda.jpg",
+      "PackagePath": "staticwebassets\\uploads\\e8060b84-ce98-4cf7-b4e5-e170ad767eda.jpg"
+    },
+    {
+      "Id": "F:\\SAV.net\\MiniProjet\\wwwroot\\uploads\\fb364be1-7be9-4104-90cd-e71e4d5316a3.jpg",
+      "PackagePath": "staticwebassets\\uploads\\fb364be1-7be9-4104-90cd-e71e4d5316a3.jpg"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.MiniProjet.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.MiniProjet.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.MiniProjet.props",
+      "PackagePath": "build\\MiniProjet.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.MiniProjet.props",
+      "PackagePath": "buildMultiTargeting\\MiniProjet.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.MiniProjet.props",
+      "PackagePath": "buildTransitive\\MiniProjet.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

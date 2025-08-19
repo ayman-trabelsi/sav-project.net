@@ -1,0 +1,148 @@
+@page "/admin/piecerechanges/create"
+@using Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory ClientFactory
+@inject AuthService _authService
+
+<h3>Create Piece Rechange</h3>
+
+<EditForm Model="newPiece" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Nom</label>
+        <InputText class="form-control" @bind-Value="newPiece.Nom" />
+    </div>
+    <div class="mb-3">
+        <label>Prix</label>
+        <InputNumber class="form-control" @bind-Value="newPiece.Prix" />
+    </div>
+    <div class="mb-3">
+        <label>Article</label>
+        <select class="form-select" @bind="newPiece.ArticleId">
+            <option value="">-- Select Article --</option>
+            @foreach (var article in articles)
+            {
+                <option value="@article.Id">@article.Libelle</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label>Image</label>
+        <InputFile OnChange="HandleFileSelected" class="form-control" accept=".jpg,.jpeg,.png" />
+        @if (!string.IsNullOrEmpty(newPiece.ImageUrl))
+        {
+            <div class="mt-2">
+                <img src="@newPiece.ImageUrl" alt="Piece rechange image" style="max-width: 200px; max-height: 200px;" />
+            </div>
+        }
+    </div>
+
+    <button class="btn btn-primary" type="submit">Create</button>
+    <button class="btn btn-secondary ms-2" type="button" @onclick="Cancel">Cancel</button>
+</EditForm>
+
+@if (loading)
+{
+    <p><em>Loading articles...</em></p>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">
+        @errorMessage
+    </div>
+}
+
+@code {
+    private PieceRechange newPiece = new();
+    private List<Article> articles = new();
+    private bool loading = true;
+    private string? errorMessage;
+    private IBrowserFile? selectedFile;
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        if (selectedFile != null)
+        {
+            // Convert the file to base64 for preview
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10485760); // 10MB max
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            newPiece.ImageUrl = $"data:{selectedFile.ContentType};base64,{base64}";
+        }
+    }
+
+    private async Task<HttpClient> GetAuthorizedHttpClient()
+    {
+        var client = ClientFactory.CreateClient("AuthorizedClient");
+        var token = await _authService.GetTokenAsync();
+
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        return client;
+    }
+
+    void Cancel()
+    {
+        Navigation.NavigateTo("/admin/piecerechanges");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            articles = await Http.GetFromJsonAsync<List<Article>>("api/articles");
+            loading = false;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load articles. Please try again.";
+            loading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var client = await GetAuthorizedHttpClient();
+
+            // If there's a file selected, upload it first
+            if (selectedFile != null)
+            {
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(selectedFile.OpenReadStream());
+                content.Add(fileContent, "file", selectedFile.Name);
+
+                var uploadResponse = await client.PostAsync("api/upload", content);
+                if (uploadResponse.IsSuccessStatusCode)
+                {
+                    newPiece.ImageUrl = await uploadResponse.Content.ReadAsStringAsync();
+                }
+            }
+
+            var response = await client.PostAsJsonAsync("api/piecerechanges", newPiece);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/admin/piecerechanges");
+            }
+            else
+            {
+                errorMessage = "Failed to create piece rechange. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while creating the piece rechange.";
+        }
+    }
+} 

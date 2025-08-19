@@ -1,0 +1,141 @@
+@page "/admin/reclamations/edit/{Id:int}"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+@using Shared.Models
+
+<h3>Modifier la Réclamation</h3>
+
+@if (isLoading)
+{
+    <p><em>Chargement...</em></p>
+}
+else if (error != null)
+{
+    <div class="alert alert-danger">
+        @error
+    </div>
+}
+else if (reclamation == null)
+{
+    <p>Réclamation non trouvée.</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <EditForm Model="@reclamation" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-group mb-3">
+                    <label for="article">Article</label>
+                    <InputSelect id="article" class="form-select" @bind-Value="reclamation.article.Id">
+                        <option value="">Sélectionner un article</option>
+                        @if (articles != null)
+                        {
+                            @foreach (var article in articles)
+                            {
+                                <option value="@article.Id">@article.Libelle</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => reclamation.article.Id)" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="description">Description</label>
+                    <InputTextArea id="description" class="form-control" @bind-Value="reclamation.Description" />
+                    <ValidationMessage For="@(() => reclamation.Description)" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="date">Date Réclamation</label>
+                    <InputDate id="date" class="form-control" @bind-Value="reclamation.DateReclamation" />
+                    <ValidationMessage For="@(() => reclamation.DateReclamation)" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="etat">État</label>
+                    <InputSelect id="etat" class="form-select" @bind-Value="reclamation.EtatId">
+                        @if (etats != null)
+                        {
+                            @foreach (var etat in etats)
+                            {
+                                <option value="@etat.Id">@etat.Libelle</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => reclamation.EtatId)" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <button type="button" class="btn btn-secondary" @onclick="NavigateBack">Annuler</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Reclamation? reclamation;
+    private List<Article>? articles;
+    private List<Etat>? etats;
+    private bool isLoading = true;
+    private string? error;
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/admin/reclamations/details/" + Id);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                reclamation = await Http.GetFromJsonAsync<Reclamation>("api/reclamations/" + Id);
+                articles = await Http.GetFromJsonAsync<List<Article>>("api/articles");
+                etats = await Http.GetFromJsonAsync<List<Etat>>("api/etats");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors du chargement des données. Veuillez réessayer.";
+            Console.WriteLine($"Error loading data: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync("api/reclamations/" + Id, reclamation);
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo("/admin/reclamations/details/" + Id);
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Échec de la mise à jour de la réclamation.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Une erreur est survenue lors de la mise à jour de la réclamation.");
+            Console.WriteLine($"Error updating reclamation: {ex}");
+        }
+    }
+} 

@@ -1,0 +1,32 @@
+﻿@inherits LayoutComponentBase
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+<main style="margin-left: 0; width: 100%;">
+        <div class="top-row px-4">
+            @if (AuthService.Roles != null)
+            {
+                <span>Welcome @AuthService.Username!</span>
+            }
+        </div>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.LoadUserFromTokenAsync();
+    }
+
+    public void Dispose()
+    {
+    }
+}

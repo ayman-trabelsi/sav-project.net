@@ -1,0 +1,185 @@
+﻿@page "/adminreclamations"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@using Shared.Models
+
+<h3>Gestion des Réclamations</h3>
+
+@if (isLoading)
+{
+    <p><em>Chargement...</em></p>
+}
+else if (error != null)
+{
+    <div class="alert alert-danger">
+        @error
+    </div>
+}
+else if (reclamations == null || !reclamations.Any())
+{
+    <p>Aucune réclamation trouvée.</p>
+}
+else
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="NavigateToCreate">
+            Nouvelle Réclamation
+        </button>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                @if (isResponsableSAV)
+                {
+                    <th>Client</th>
+                }
+                <th>Article</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>État</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rec in reclamations)
+            {
+                <tr>
+                    @if (isResponsableSAV)
+                    {
+                        <td>@rec.Client?.Username</td>
+                    }
+                    <td>@rec.article?.Libelle</td>
+                    <td>@rec.Description</td>
+                    <td>@rec.DateReclamation.ToShortDateString()</td>
+                    <td>
+                        @if (isResponsableSAV)
+                        {
+                            <select class="form-select" value="@rec.EtatId" @onchange="@(e => UpdateEtat(rec, e))">
+                                @if (etats != null)
+                                {
+                                    @foreach (var etat in etats)
+                                    {
+                                        <option value="@etat.Id">@etat.Libelle</option>
+                                    }
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            @rec.Etat?.Libelle
+                        }
+                    </td>
+                    <td>
+                        <NavLink href="@($"/admin/reclamations/details/{rec.Id}")" class="btn btn-info btn-sm">
+                            Détails
+                        </NavLink>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Reclamation>? reclamations;
+    private List<Etat>? etats;
+    private bool isLoading = true;
+    private string? error;
+    private bool isResponsableSAV;
+
+    private void NavigateToCreate()
+    {
+        NavigationManager.NavigateTo("/admin/reclamations/create");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isResponsableSAV = AuthService.Roles?.Contains("ResponsableSAV") ?? false;
+            Console.WriteLine($"Is ResponsableSAV: {isResponsableSAV}");
+            
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                reclamations = await Http.GetFromJsonAsync<List<Reclamation>>("api/reclamations");
+                Console.WriteLine($"Received {reclamations?.Count ?? 0} reclamations");
+                if (reclamations != null)
+                {
+                    foreach (var rec in reclamations)
+                    {
+                        Console.WriteLine($"Reclamation: Id={rec.Id}, Description={rec.Description}, Client={rec.Client?.Username}, Article={rec.article?.Libelle}");
+                    }
+                }
+                
+                etats = await Http.GetFromJsonAsync<List<Etat>>("api/etats");
+                Console.WriteLine($"Received {etats?.Count ?? 0} etats");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Une erreur est survenue lors du chargement des réclamations. Veuillez réessayer.";
+            Console.WriteLine($"Error loading reclamations: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task UpdateEtat(Reclamation reclamation, ChangeEventArgs e)
+    {
+        try
+        {
+            if (int.TryParse(e.Value?.ToString(), out int newEtatId))
+            {
+                reclamation.EtatId = newEtatId;
+                var response = await Http.PutAsJsonAsync($"api/reclamations/{reclamation.Id}", reclamation);
+                if (!response.IsSuccessStatusCode)
+                {
+                    await JS.InvokeVoidAsync("alert", "Échec de la mise à jour de l'état.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Une erreur est survenue lors de la mise à jour de l'état.");
+            Console.WriteLine($"Error updating etat: {ex}");
+        }
+    }
+
+    private async Task DeleteReclamation(int id)
+    {
+        try
+        {
+            bool confirmed = await JS.InvokeAsync<bool>("confirm", "Voulez-vous vraiment supprimer cette réclamation ?");
+            if (!confirmed) return;
+
+            var response = await Http.DeleteAsync($"api/reclamations/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var deleted = reclamations?.FirstOrDefault(r => r.Id == id);
+                if (deleted != null)
+                {
+                    reclamations.Remove(deleted);
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Échec de la suppression.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Une erreur est survenue lors de la suppression.");
+            Console.WriteLine($"Error deleting reclamation: {ex}");
+        }
+    }
+}

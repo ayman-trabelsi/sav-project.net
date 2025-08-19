@@ -1,0 +1,148 @@
+ @page "/admin/interventions/edit/{Id:int}"
+@using Shared.Models
+@using Shared.ModelsDto
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h3>Edit Intervention</h3>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (intervention == null)
+{
+    <p>Intervention not found.</p>
+}
+else
+{
+    <EditForm Model="@intervention" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <InputText id="description" @bind-Value="intervention.Description" class="form-control" />
+            <ValidationMessage For="@(() => intervention.Description)" />
+        </div>
+
+        <div class="form-group">
+            <label for="dateIntervention">Date</label>
+            <InputDate id="dateIntervention" @bind-Value="intervention.DateIntervention" class="form-control" />
+            <ValidationMessage For="@(() => intervention.DateIntervention)" />
+        </div>
+
+        <div class="form-group">
+            <label for="prix">Prix</label>
+            <InputNumber id="prix" @bind-Value="intervention.Prix" class="form-control" />
+            <ValidationMessage For="@(() => intervention.Prix)" />
+        </div>
+
+        <div class="form-group">
+            <label for="technicienId">Technicien</label>
+            <InputSelect id="technicienId" @bind-Value="intervention.TechnicienId" class="form-control">
+                <option value="0">Select a technicien...</option>
+                @if (techniciens != null)
+                {
+                    @foreach (var technicien in techniciens)
+                    {
+                        <option value="@technicien.Id">@technicien.Nom</option>
+                    }
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => intervention.TechnicienId)" />
+        </div>
+
+        <div class="form-group">
+            <label for="reclamationId">Reclamation</label>
+            <InputSelect id="reclamationId" @bind-Value="intervention.ReclamationId" class="form-control">
+                <option value="0">Select a reclamation...</option>
+                @if (reclamations != null)
+                {
+                    @foreach (var reclamation in reclamations)
+                    {
+                        <option value="@reclamation.Id">@reclamation.Description</option>
+                    }
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => intervention.ReclamationId)" />
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </EditForm>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">
+        @errorMessage
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Intervention? intervention;
+    private List<Technicien>? techniciens;
+    private List<Reclamation>? reclamations;
+    private bool loading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                intervention = await Http.GetFromJsonAsync<Intervention>($"api/interventions/{Id}");
+                techniciens = await Http.GetFromJsonAsync<List<Technicien>>("api/techniciens");
+                reclamations = await Http.GetFromJsonAsync<List<Reclamation>>("api/reclamations");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load intervention data. Please try again.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            errorMessage = null;
+            var response = await Http.PutAsJsonAsync($"api/interventions/{Id}", intervention);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/admin/interventions");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Failed to update intervention: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while updating the intervention. Please try again.";
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/interventions");
+    }
+}

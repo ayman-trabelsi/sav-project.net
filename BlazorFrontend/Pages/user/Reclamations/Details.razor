@@ -1,0 +1,73 @@
+﻿@page "/reclamations/details/{Id:int}"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@using Shared.Models
+
+<h3>Reclamation Details</h3>
+
+@if (isLoading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (reclamation == null)
+{
+    <p><em>Reclamation not found.</em></p>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Description</dt>
+        <dd class="col-sm-9">@reclamation.Description</dd>
+
+        <dt class="col-sm-3">Date</dt>
+        <dd class="col-sm-9">@reclamation.DateReclamation.ToShortDateString()</dd>
+
+        <dt class="col-sm-3">Etat</dt>
+        <dd class="col-sm-9">@(reclamation.Etat?.Libelle ?? "-")</dd>
+
+        <dt class="col-sm-3">Article</dt>
+        <dd class="col-sm-9">@(reclamation.article?.Libelle ?? "-")</dd>
+
+        <dt class="col-sm-3">Client</dt>
+        <dd class="col-sm-9">@(reclamation.Client?.Username ?? "-")</dd>
+
+        @if (reclamation.InterventionId.HasValue)
+        {
+            <dt class="col-sm-3">Intervention ID</dt>
+            <dd class="col-sm-9">@reclamation.InterventionId</dd>
+        }
+    </dl>
+
+    <NavLink href="/reclamations">Back to list</NavLink>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Reclamation? reclamation;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                reclamation = await Http.GetFromJsonAsync<Reclamation>($"api/reclamations/{Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
